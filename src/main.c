@@ -61,6 +61,7 @@ void setup(){
 }
 
 void loop(){   
+    #ifndef __EMSCRIPTEN__
     check_controller_connection();
 
     if(isMouseReleased){
@@ -110,6 +111,7 @@ void loop(){
         frontend_gba.apu.samplePushRate = CYCLES_PER_FRAME * REFRESH_RATE * frontend_speed / frontend_gba.apu.audioSpec.freq;
         frontend_gba.ppu.frameSkip = frontend_speed >> 1;
     }
+    #endif
 
     for(int i = 0; i < frontend_speed && !frontend_pause; i++)
         emulateGba(&frontend_gba);

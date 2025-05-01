@@ -71,6 +71,13 @@ void resetGba(gba_t* gba){
     memcpy(&gba->gamepak, &tmp_gamepak, sizeof(gamepak_t));
     memcpy(&gba->apu.audioSpec, &tmp_audioSpec, sizeof(SDL_AudioSpec));
 
+    for(int i = 0; i < 2; i++){
+        gba->ppu.BGP[0 + 4*i] = 0x100;
+        gba->ppu.BGP[1 + 4*i] = 0;
+        gba->ppu.BGP[2 + 4*i] = 0;
+        gba->ppu.BGP[3 + 4*i] = 0x100;
+    }
+
     #ifdef EMSCRIPTEN
     gba->cpu.r[13] = 0x3007F00;
     gba->cpu.r[15] = 0x8000000;
