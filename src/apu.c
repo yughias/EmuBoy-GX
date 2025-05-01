@@ -15,11 +15,11 @@
 #define IS_PLAYBACK(reg) ((reg >> 11) & 0x1F)
 #define HOST_GAIN 32
 
-static const bool waveforms[4][8] = {
-    { 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 1, 1, 1 },
-    { 0, 1, 1, 1, 1, 1, 1, 0 }
+static const i8 waveforms[4][8] = {
+    { -1, -1, -1, -1, -1, -1, -1, +1 },
+    { +1, -1, -1, -1, -1, -1, -1, +1 },
+    { +1, -1, -1, -1, -1, +1, +1, +1 },
+    { -1, +1, +1, +1, +1, +1, +1, -1 }
 };
 
 void resetFifo(fifo_t* fifo);
@@ -271,11 +271,25 @@ void event_pushSampleToAudioDevice(gba_t* gba, u32 dummy){
         mixDmaSound(apu, sample);
         mixDacSound(apu, sample);
 
-        sample->right += apu->audioSpec.silence;
-        sample->left += apu->audioSpec.silence;
+        u16 bias = gba->apu.SOUNDBIAS & (0x1FF << 1);
+        sample->left += bias;
+        sample->right += bias;
 
-        sample->left = (i16)sample->left * HOST_GAIN;
-        sample->right = (i16)sample->right * HOST_GAIN;
+        if(sample->left < 0)
+            sample->left = 0;
+        if(sample->left > 0x3FF)
+            sample->left = 0x3FF;
+        
+        if(sample->right < 0)
+            sample->right = 0;
+        if(sample->right > 0x3FF)
+            sample->right = 0x3FF;
+
+        sample->left -= 0x200;
+        sample->right -= 0x200;
+
+        sample->left = sample->left * HOST_GAIN;
+        sample->right = sample->right * HOST_GAIN;
 
         buffer->w_idx = (buffer->w_idx + 1) % SAMPLE_BUFFER_SIZE; 
         buffer->size += 1;
@@ -300,9 +314,9 @@ void audioCallback(void* userdata, Uint8* stream, int len){
 void mixDmaSound(apu_t* apu, sample_t* sample){
     for(int i = 0; i < 2; i++){
         if(apu->dma_sound_enabled_right[i])
-            sample->right += (((i16)(i8)apu->dma_sound_sample[i])) >> apu->dma_sound_volume[i];
+            sample->right += 4 * (((i16)(i8)apu->dma_sound_sample[i])) >> apu->dma_sound_volume[i];
         if(apu->dma_sound_enabled_left[i])
-            sample->left += (((i16)(i8)apu->dma_sound_sample[i])) >> apu->dma_sound_volume[i];
+            sample->left += 4 * (((i16)(i8)apu->dma_sound_sample[i])) >> apu->dma_sound_volume[i];
     }
 }
 
@@ -318,8 +332,8 @@ void mixDacSound(apu_t* apu, sample_t* sample){
     dac_sample.left *= apu->sound_channels_amplifier_left;
     dac_sample.right *= apu->sound_channels_amplifier_right;
 
-    dac_sample.left >>= apu->sound_channels_volume + 2;
-    dac_sample.right >>= apu->sound_channels_volume + 2;
+    dac_sample.left >>= apu->sound_channels_volume;
+    dac_sample.right >>= apu->sound_channels_volume;
 
     sample->left += dac_sample.left;
     sample->right += dac_sample.right;
@@ -443,6 +457,7 @@ void writeWaveRam(gba_t* gba, u8 addr, u8 byte){
 
 void turnOffDac(gba_t* gba, u32 idx){
     sound_channel_t* ch = &gba->apu.sound_channels[idx];
+    ch->sample = 0;
     if(!ch->enabled)
         return;
     removeEventIfPresent(&gba->scheduler_head, &ch->lengthExpired);

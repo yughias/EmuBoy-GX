@@ -96,6 +96,7 @@ void resetGba(gba_t* gba){
 
     gba->KEYINPUT = 0xFFFF;
     gba->RCNT = 0x8000;
+    gba->apu.SOUNDBIAS = 0x200;
     updateWaitStates(&gba->gamepak, &gba->cpu, gba->WAITCNT);
 
     arm7tdmi_pipeline_refill(&gba->cpu);

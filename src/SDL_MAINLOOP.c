@@ -52,6 +52,8 @@ void updateWindowIcon();
 SDL_Window* window;
 SDL_Surface* surface;
 
+SDL_Surface* asciiSurface;
+
 bool running = false;
 
 #ifndef __EMSCRIPTEN__
@@ -192,6 +194,15 @@ int main(int argc, char* argv[]){
         #endif
     );
 
+    char* base_path = SDL_GetBasePath(); 
+    char bitmap_font_path[FILENAME_MAX];
+    strncpy(bitmap_font_path, base_path, FILENAME_MAX - 1);
+    strncat(bitmap_font_path, "data/bitmap_font.bmp", FILENAME_MAX - 1);
+    SDL_free(base_path);
+
+    asciiSurface = SDL_LoadBMP(bitmap_font_path);
+    SDL_SetColorKey(asciiSurface, SDL_TRUE, 0);
+
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE, "1");
 
@@ -246,6 +257,8 @@ int main(int argc, char* argv[]){
     if(onExit)
         (*onExit)();
 
+    SDL_FreeSurface(asciiSurface);
+
     SDL_DestroyTexture(drawBuffer);
 	SDL_DestroyRenderer(renderer);
     
@@ -291,8 +304,14 @@ void mainloop(){
     while(SDL_PollEvent(&event)){
         switch(event.type){
             case SDL_WINDOWEVENT:
-            if(event.window.event == SDL_WINDOWEVENT_CLOSE)
-                running = 0;
+            if(event.window.event == SDL_WINDOWEVENT_CLOSE){
+                if(SDL_GetWindowID(window) == event.window.windowID)
+                    running = 0;
+                else {
+                    SDL_Window* win_target = SDL_GetWindowFromID(event.window.windowID);
+                    SDL_DestroyWindow(win_target);
+                }
+            }
             break;
 
             case SDL_KEYDOWN:
@@ -405,8 +424,8 @@ void updateWindowIcon(){
     SDL_FreeSurface(icon);
 }
 
-Uint64 millis(){
-    return (float)SDL_GetPerformanceCounter()/SDL_GetPerformanceFrequency()*1000;
+double millis(){
+    return (double)SDL_GetPerformanceCounter()/SDL_GetPerformanceFrequency()*1000;
 }
 
 void fullScreen(){
@@ -444,6 +463,17 @@ void getRGB(int pixel, Uint8* red, Uint8* green, Uint8* blue){
 void rect(int x, int y, int w, int h, int col){
     SDL_Rect rect = {x, y, w, h};
     SDL_FillRect(surface, &rect, col);
+}
+
+void drawText(SDL_Surface* surface, int x, int y, const char* string){
+    for(int i = 0; i < strlen(string); i++){
+        unsigned char symbol = string[i];
+        int offX = symbol % 16;
+        int offY = symbol / 16;
+        SDL_Rect srcRect = {.x = offX*8, .y = offY*8, .w = 8, .h = 8};
+        SDL_Rect dstRect = {.x = x+i*8, .y = y, .w = 8, .h = 8};
+        SDL_BlitSurface(asciiSurface, &srcRect, surface, &dstRect);
+    }
 }
 
 int getArgc(){

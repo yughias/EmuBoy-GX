@@ -5,6 +5,14 @@
 #include <string.h>
 #include "vector.h"
 
+#include "SDL_MAINLOOP.h"
+
+#define CHEAT_ENGINE_RESULT_LIMIT 32
+#define CHEAT_ENGINE_CHAR_WIDTH 32
+#define CHEAT_ENGINE_RENDER_MARGIN 5
+
+SDL_Window* cheatEngineWindow;
+
 typedef struct address_t {
     u32 address;
     u8 type;
@@ -45,11 +53,38 @@ for(int i = 0; i < ram_size / sizeof(u32); i++){ \
 }
 
 void cheatEnginePrintAddresses(){
-    printf("<found values>\n");
-    for(int i = 0; i < possible_addresses.size / sizeof(address_t); i++){
+    Uint32 id = SDL_GetWindowID(cheatEngineWindow);
+    if(!id)
+        cheatEngineWindow = SDL_CreateWindow(
+            "found addresses",
+            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+            CHEAT_ENGINE_CHAR_WIDTH*8+CHEAT_ENGINE_RENDER_MARGIN*2, CHEAT_ENGINE_RESULT_LIMIT*8*2+CHEAT_ENGINE_RENDER_MARGIN*2, 
+            0
+        );
+
+    SDL_Surface* surface = SDL_GetWindowSurface(cheatEngineWindow);
+    SDL_FillRect(surface, NULL, 0);
+
+    int written = 0;
+    int n_addresses = possible_addresses.size / sizeof(address_t);
+    char text[CHEAT_ENGINE_CHAR_WIDTH];
+    for(int i = 0; i < n_addresses && written != CHEAT_ENGINE_RESULT_LIMIT; i++){
         address_t* addr_struct = &((address_t*)possible_addresses.buffer)[i];
-        printf("%X byte: %d\n", addr_struct->address, addr_struct->type);
+        snprintf(text, CHEAT_ENGINE_CHAR_WIDTH - 1, "0x%X n. bytes: %d", addr_struct->address, addr_struct->type);
+        text[CHEAT_ENGINE_CHAR_WIDTH-1] = 0;
+        drawText(surface, CHEAT_ENGINE_RENDER_MARGIN, CHEAT_ENGINE_RENDER_MARGIN+i*8*2, text);
+        written += 1;
     }
+
+
+    if(written == n_addresses)
+        strcpy(text, "END");
+    else    
+        strcpy(text, "...");
+
+    drawText(surface, (CHEAT_ENGINE_CHAR_WIDTH-3)*8, CHEAT_ENGINE_RENDER_MARGIN+(CHEAT_ENGINE_RESULT_LIMIT-1)*8*2+8, text);
+
+    SDL_UpdateWindowSurface(cheatEngineWindow);
 }
 
 void cheatEngineNewSearch(gba_t* gba, u32 value_to_find){

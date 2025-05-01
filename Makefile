@@ -4,7 +4,7 @@ DEP := $(OBJ:.o=.d)
 
 CC := gcc
 EXE := emuboyGX.exe
-CFLAGS := -Iinclude -O2 -mavx -flto
+CFLAGS := -Iinclude -O2 -mavx -flto=auto
 DEBUG_FLAGS := -pg -no-pie
 LIBS := -Llib -lmingw32 -lSDL2main -lSDL2 -lopengl32 -lshlwapi -lcomdlg32 -lole32
 
@@ -63,4 +63,4 @@ clean:
 -include $(DEP)
 
 .SILENT: clean
-.PHONY: gcc emcc clean codegen codegen-thumb codegen-arm codegen-readio codegen-writeio debug-compile debug-graph
+.PHONY: emcc clean codegen codegen-thumb codegen-arm codegen-readio codegen-writeio debug-compile debug-graph

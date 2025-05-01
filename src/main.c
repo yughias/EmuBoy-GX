@@ -29,8 +29,8 @@ void setup(){
     strncat(data_path, "data/", FILENAME_MAX - 1);
     strncpy(logo_path, data_path, FILENAME_MAX - 1);
     strncpy(frontend_bios_path, data_path, FILENAME_MAX - 1);
-
     strncat(logo_path, "logo.bmp", FILENAME_MAX - 1);
+    SDL_free(exe_path);
 
     setWindowIcon(logo_path);
     frameRate(REFRESH_RATE);

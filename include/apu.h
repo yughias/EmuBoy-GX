@@ -18,8 +18,8 @@
 #define SAMPLE_BUFFER_SIZE 4096
 
 typedef struct sample_t {
-    u16 left;
-    u16 right;
+    i16 left;
+    i16 right;
 } sample_t;
 
 typedef struct atomic_fifo_t {
@@ -43,7 +43,7 @@ typedef struct sound_channel_t {
     bool envelope_dir;
     u32 envelope_time;
     
-    bool sample;
+    i8 sample;
     u8 volume;
     u32 freq;
     bool enabled;
